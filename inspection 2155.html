@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Inspection de maison</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --border: #e0ddd8;
+    --text: #1a1a1a;
+    --text-soft: #6b6660;
+    --accent: #2d5a3d;
+    --accent-light: #e8f0ea;
+    --oui: #2d7a4f;
+    --oui-bg: #e6f4ec;
+    --non: #c0392b;
+    --non-bg: #fdecea;
+    --averifier: #d68910;
+    --averifier-bg: #fef9e7;
+    --header-h: 56px;
+    --nav-h: 64px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    padding-bottom: calc(var(--nav-h) + 16px);
+  }
+
+  /* HEADER */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--accent);
+    color: white;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.02em; }
+  .header-sub { font-size: 0.72rem; opacity: 0.8; margin-top: 1px; }
+  .progress-pill {
+    background: rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* ROOM NAV */
+  .room-nav {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: var(--header-h);
+    z-index: 90;
+  }
+  .room-nav::-webkit-scrollbar { display: none; }
+  .room-btn {
+    flex-shrink: 0;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .room-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .room-btn .room-count {
+    display: inline-block;
+    background: rgba(0,0,0,0.12);
+    border-radius: 10px;
+    padding: 0 5px;
+    font-size: 0.68rem;
+    margin-left: 4px;
+  }
+  .room-btn.active .room-count { background: rgba(255,255,255,0.25); }
+
+  /* CONTENT */
+  .content { padding: 12px 16px; }
+
+  .room-section { display: none; }
+  .room-section.active { display: block; }
+
+  .room-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ELEMENT GROUP */
+  .element-group {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .element-header {
+    padding: 11px 14px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-soft);
+    background: #faf9f7;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* CHECK ITEM */
+  .check-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0eeea;
+  }
+  .check-item:last-child { border-bottom: none; }
+
+  .check-label {
+    font-size: 0.88rem;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .status-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .status-btn {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 7px 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-soft);
+    text-align: center;
+  }
+  .status-btn.oui.selected {
+    background: var(--oui-bg);
+    border-color: var(--oui);
+    color: var(--oui);
+  }
+  .status-btn.non.selected {
+    background: var(--non-bg);
+    border-color: var(--non);
+    color: var(--non);
+  }
+  .status-btn.averifier.selected {
+    background: var(--averifier-bg);
+    border-color: var(--averifier);
+    color: var(--averifier);
+  }
+
+  .note-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    color: var(--text);
+    background: var(--bg);
+    resize: none;
+    font-family: inherit;
+    display: none;
+    margin-top: 2px;
+  }
+  .note-input.visible { display: block; }
+  .note-toggle {
+    font-size: 0.72rem;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  /* PHOTO SECTION */
+  .photo-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .photo-section-header {
+    padding: 11px 14px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-soft);
+    background: #faf9f7;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .photo-count-badge {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .photo-body { padding: 12px 14px; }
+  .photo-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .photo-btn {
+    flex: 1;
+    border: 1.5px dashed var(--accent);
+    background: var(--accent-light);
+    border-radius: 10px;
+    padding: 10px 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .photo-btn .photo-btn-icon { font-size: 1.4rem; }
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .photo-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-del {
+    position: absolute;
+    top: 3px; right: 3px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .photo-empty {
+    text-align: center;
+    color: var(--text-soft);
+    font-size: 0.78rem;
+    padding: 8px 0;
+  }
+
+  /* LIGHTBOX */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 200;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox.active { display: flex; }
+  .lightbox img {
+    max-width: 95vw;
+    max-height: 80vh;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    font-size: 1.4rem;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox-caption {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    height: var(--nav-h);
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    z-index: 100;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 10px;
+    transition: background 0.15s;
+  }
+  .nav-item:active { background: var(--accent-light); }
+  .nav-icon { font-size: 1.3rem; }
+  .nav-label { font-size: 0.65rem; font-weight: 600; color: var(--text-soft); }
+
+  /* SUMMARY VIEW */
+  .summary-view { display: none; padding: 12px 16px; }
+  .summary-view.active { display: block; }
+
+  .summary-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .summary-stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+  .stat-num { font-size: 1.6rem; font-weight: 800; }
+  .stat-label { font-size: 0.68rem; color: var(--text-soft); margin-top: 2px; }
+  .stat-card.oui .stat-num { color: var(--oui); }
+  .stat-card.non .stat-num { color: var(--non); }
+  .stat-card.averifier .stat-num { color: var(--averifier); }
+
+  .summary-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .summary-section-header {
+    padding: 10px 14px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    background: #faf9f7;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .summary-item {
+    padding: 8px 14px;
+    border-bottom: 1px solid #f0eeea;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.84rem;
+  }
+  .summary-item:last-child { border-bottom: none; }
+  .summary-item-label { flex: 1; color: var(--text); line-height: 1.3; }
+  .summary-item-note { font-size: 0.72rem; color: var(--text-soft); margin-top: 2px; }
+  .badge {
+    flex-shrink: 0;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .badge.oui { background: var(--oui-bg); color: var(--oui); }
+  .badge.non { background: var(--non-bg); color: var(--non); }
+  .badge.averifier { background: var(--averifier-bg); color: var(--averifier); }
+
+  .empty-summary {
+    text-align: center;
+    color: var(--text-soft);
+    font-size: 0.88rem;
+    padding: 40px 20px;
+  }
+
+  @media print {
+    body > *:not(#print-overlay) { display: none !important; }
+    #print-overlay { position: static !important; overflow: visible !important; }
+    #print-overlay > div:first-child { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header h1" style="font-size:1rem;font-weight:700;color:white;">🏠 Inspection de maison</div>
+    <div class="header-sub">2155 Ch. de l'Aéroport, Thetford Mines</div>
+  </div>
+  <div class="progress-pill" id="progressPill">0 / 0</div>
+</div>
+
+<div class="room-nav" id="roomNav"></div>
+
+<div id="mainContent">
+  <!-- Rooms injected by JS -->
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="" style="max-width:95vw;max-height:80vh;border-radius:8px;object-fit:contain">
+  <video id="lightboxVid" controls style="display:none;max-width:95vw;max-height:80vh;border-radius:8px" onclick="event.stopPropagation()"></video>
+  <div class="lightbox-caption" id="lightboxCaption"></div>
+</div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="fileGallery" accept="image/*,video/*" multiple style="display:none" onchange="handleMedia(event)">
+
+<div class="summary-view" id="summaryView">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="summary-title" style="margin-bottom:0">📋 Résumé de l'inspection</div>
+    <button onclick="printSummary()" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:8px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">📄 Exporter</button>
+  </div>
+  <div class="summary-stat-row">
+    <div class="stat-card oui"><div class="stat-num" id="statOui">0</div><div class="stat-label">✅ Oui</div></div>
+    <div class="stat-card non"><div class="stat-num" id="statNon">0</div><div class="stat-label">❌ Non</div></div>
+    <div class="stat-card averifier"><div class="stat-num" id="statAv">0</div><div class="stat-label">🔄 À vérif.</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+    <div class="stat-card" style="border-color:#e0ddd8">
+      <div class="stat-num" id="statTotal" style="color:#1a1a1a">0</div>
+      <div class="stat-label">Total items</div>
+    </div>
+    <div class="stat-card" style="border-color:#e0ddd8">
+      <div class="stat-num" id="statUnanswered" style="color:#6b6660">0</div>
+      <div class="stat-label">Non évalués</div>
+    </div>
+  </div>
+  <div id="summaryContent"></div>
+  <div id="summaryPhotos"></div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="showInspection()">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-label">Inspection</div>
+  </div>
+  <div class="nav-item" onclick="saveData()">
+    <div class="nav-icon">💾</div>
+    <div class="nav-label">Sauvegarder</div>
+  </div>
+  <div class="nav-item" onclick="showSummary()">
+    <div class="nav-icon">📋</div>
+    <div class="nav-label">Résumé</div>
+  </div>
+  <div class="nav-item" onclick="resetAll()">
+    <div class="nav-icon">↺</div>
+    <div class="nav-label">Réinitialiser</div>
+  </div>
+</div>
+
+<script>
+const ROOMS = [
+  {
+    id: 'entree', icon: '🚪', name: 'Entrée',
+    elements: [
+      { name: 'Plancher', items: ['Plancher en bon état général?', 'Aucun espacement ni déformation?', 'Aucune humidité visible?'] },
+      { name: 'Porte entrée', items: ['Ferme bien sans forcer?', 'Coupe-bise en bon état?', 'Serrure et poignée fonctionnelles?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?', 'Aucune fissure?'] },
+      { name: 'Penderie', items: ['Aucune humidité ni odeur?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'cuisine', icon: '🍳', name: 'Cuisine',
+    elements: [
+      { name: 'Armoires', items: ['Portes bien alignées, charnières OK?', 'Tiroirs fonctionnels?', 'Intérieur propre, sans humidité?'] },
+      { name: 'Comptoir', items: ['Aucune fissure ni décollement?', 'Joint mur-comptoir intact?'] },
+      { name: 'Plancher époxy', items: ['Aucune fissure ni bulle?', 'Niveau, sans soulèvement?'] },
+      { name: 'Évier', items: ['Aucune fuite sous le meuble?', 'Robinet fonctionne bien?'] },
+      { name: 'Hotte', items: ['Fonctionne correctement?', 'Évacue vers extérieur (pas recyclage)?'] },
+      { name: 'Électroménagers', items: ['Lave-vaisselle inclus — fonctionnel?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'salle-a-manger', icon: '🍽️', name: 'Salle à manger',
+    elements: [
+      { name: 'Plancher flottant', items: ['Aucun espace entre les planches?', 'Aucun vallonnement?', 'Aucune humidité visible?'] },
+      { name: 'Porte-patio', items: ['Glisse bien sans forcer?', 'Joint d\'étanchéité intact?', 'Verrouillage fonctionnel?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?', 'Aucune fissure?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'salon', icon: '🛋️', name: 'Salon',
+    elements: [
+      { name: 'Plafond cathédrale', items: ['Aucune fissure?', 'Aucune infiltration ni cerne?'] },
+      { name: 'Fenêtres', items: ['Aucune condensation entre les vitres?', 'Joints extérieurs intacts?', 'Ouvrent et ferment bien?'] },
+      { name: 'Plancher', items: ['En bon état général?', 'Aucun espace ni déformation?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'ch-principale', icon: '🛏️', name: 'Ch. principale',
+    elements: [
+      { name: 'Plancher', items: ['En bon état général?', 'Aucune humidité visible?'] },
+      { name: 'Fenêtres', items: ['Joints OK, aucune condensation?', 'Ouvrent et ferment bien?'] },
+      { name: 'Garde-robe / Walk-in', items: ['Garde-robe présent?', 'Aucune humidité ni odeur?', 'Plancher intact?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?', 'Aucune fissure?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'ch2', icon: '🖥️', name: 'Bureau',
+    elements: [
+      { name: 'Plancher', items: ['En bon état général?', 'Aucune humidité visible?'] },
+      { name: 'Fenêtres', items: ['Joints OK, aucune condensation?', 'Ouvrent et ferment bien?'] },
+      { name: 'Garde-robe', items: ['Garde-robe présent?', 'Aucune humidité ni odeur?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?', 'Aucune fissure?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'ch3', icon: '🛏️', name: 'Chambre 3',
+    elements: [
+      { name: 'Plancher', items: ['En bon état général?', 'Aucune humidité?'] },
+      { name: 'Fenêtres', items: ['Fonctionnelles?', 'Joints OK?'] },
+      { name: 'Garde-robe', items: ['Garde-robe présent?', 'Aucune humidité ni odeur?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?', 'Aucune fissure?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'sdb-rdc', icon: '🚿', name: 'SDB RDC',
+    elements: [
+      { name: 'Toilette', items: ['Chasse d\'eau fonctionne bien?', 'Aucune fuite à la base?', 'Aucun bruit anormal après chasse?'] },
+      { name: 'Évier', items: ['Aucune fissure? (signalé 2020)', 'Aucune fuite sous le meuble?'] },
+      { name: 'Baignoire tourbillon', items: ['Joints scellant refaits et intacts?', 'Fonctionne correctement?', 'Aucune fissure?'] },
+      { name: 'Douche', items: ['Joints et carrelage en bon état?', 'Drain fonctionne?'] },
+      { name: 'Carrelage plancher', items: ['Aucune tuile descellée?', 'Joints en bon état?'] },
+      { name: 'Ventilateur plafond', items: ['Fonctionne correctement?', 'Évacue vers extérieur?'] },
+      { name: 'Robinetterie', items: ['Aucune fuite visible?', 'Pression d\'eau adéquate?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'garage', icon: '🚗', name: 'Garage',
+    elements: [
+      { name: 'Panneau électrique 200A', items: ['Aucune odeur de brûlé?', 'Aucune trace de surchauffe?', 'Disjoncteurs en bon état?', 'Prise pour génératrice présente?'] },
+      { name: 'Plancher époxy', items: ['Aucune fissure ni soulèvement?', 'Niveau OK?'] },
+      { name: 'Porte garage → maison', items: ['Ferme-porte automatique installé?', 'Joint d\'étanchéité présent?'] },
+      { name: 'Porte de garage', items: ['Ouvre et ferme bien?', 'Ressorts en bon état?'] },
+      { name: 'Murs OSB', items: ['Aucune humidité ni tache?', 'Bien fixés?'] },
+      { name: 'Escalier garage', items: ['Marches stables, sans jeu?', 'Main courante présente et solide?', 'Revêtement antidérapant présent?', 'Éclairage fonctionnel?'] },
+      { name: 'Électricité', items: ['Luminaires sécuritaires (aucune ampoule nue)?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'escalier', icon: '🪜', name: 'Escalier SS',
+    elements: [
+      { name: 'Porte sous-sol', items: ['S\'ouvre sur palier (pas directement sur marches)?'] },
+      { name: 'Main courante', items: ['Solide et bien fixée?', 'Hauteur adéquate?'] },
+      { name: 'Marches', items: ['Stables, sans jeu?', 'Revêtement antidérapant présent?'] },
+      { name: 'Éclairage', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'rangement-ss', icon: '📦', name: 'Rangement SS',
+    elements: [
+      { name: 'Structure', items: ['Plafond sans cerne ni fissure?', 'Murs sans humidité ni efflorescence?', 'Plancher en bon état?'] },
+      { name: 'Accessibilité', items: ['Accès facile, aucun obstacle?', 'Portes ou panneaux fonctionnels?'] },
+      { name: 'Éclairage', items: ['Éclairage présent et fonctionnel?', 'Luminaire sécuritaire?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'salle-fam', icon: '🎮', name: 'Salle fam.',
+    elements: [
+      { name: 'Plancher flottant', items: ['Aucune humidité en dessous?', 'Aucun espace ni déformation?'] },
+      { name: 'Plafond suspendu', items: ['Aucun cerne sur les tuiles?', 'Toutes les tuiles en place?'] },
+      { name: 'Murs', items: ['Aucune fissure?', 'Aucune humidité ni efflorescence?'] },
+      { name: 'Fenêtres sous-sol', items: ['Aucune infiltration?', 'Joints intacts?'] },
+      { name: 'Colonne acier centrale', items: ['Droite, sans jeu?', 'Aucune rouille importante?'] },
+      { name: 'Électricité', items: ['Luminaires sécuritaires?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'atelier-ss', icon: '🔧', name: 'Atelier SS',
+    elements: [
+      { name: 'Plancher', items: ['Dalle béton en bon état?', 'Aucune fissure importante?', 'Aucune humidité?'] },
+      { name: 'Murs', items: ['Aucune humidité ni efflorescence?', 'Aucune fissure?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?', 'Hauteur adéquate pour travailler?'] },
+      { name: 'Ventilation', items: ['Ventilation adéquate présente?'] },
+      { name: 'Électricité', items: ['Luminaires sécuritaires?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'ch-ss', icon: '🛏️', name: 'Ch. SS 1',
+    elements: [
+      { name: 'Plancher', items: ['Aucune humidité?', 'Aucune déformation?'] },
+      { name: 'Fenêtre', items: ['Issue de secours adéquate (largeur/hauteur)?', 'Puits de fenêtre dégagé?'] },
+      { name: 'Garde-robe', items: ['Garde-robe présent?', 'Aucune humidité ni odeur?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?'] },
+      { name: 'Murs', items: ['Aucune humidité ni efflorescence?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'ch-ss2', icon: '🛏️', name: 'Ch. SS 2',
+    elements: [
+      { name: 'Plancher', items: ['Aucune humidité?', 'Aucune déformation?'] },
+      { name: 'Fenêtre', items: ['Issue de secours adéquate (largeur/hauteur)?', 'Puits de fenêtre dégagé?'] },
+      { name: 'Garde-robe', items: ['Garde-robe présent?', 'Aucune humidité ni odeur?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?'] },
+      { name: 'Murs', items: ['Aucune humidité ni efflorescence?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'sdb-ss', icon: '🚿', name: 'SDB sous-sol',
+    elements: [
+      { name: 'Toilette', items: ['Chasse d\'eau fonctionne bien?', 'Aucune fuite à la base?', 'Aucun bruit anormal après chasse?'] },
+      { name: 'Ventilateur', items: ['Installé depuis 2020?', 'Évacue vers extérieur?'] },
+      { name: 'Plafond', items: ['Aucun cerne d\'eau?', 'Aucune moisissure visible?'] },
+      { name: 'Laveuse / sécheuse', items: ['En bon état général?', 'Conduit sécheuse en aluminium (pas plastique)?'] },
+      { name: 'Joints', items: ['Scellés correctement?'] },
+      { name: 'Robinetterie', items: ['Aucune fuite?', 'Pression adéquate?'] },
+      { name: 'Électricité', items: ['Fonctionnel?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'entretoit', icon: '🏚️', name: 'Entre-toit',
+    elements: [
+      { name: 'Structure', items: ['Fermes de toit sans déformation ni fissure?', 'Aucun signe de pourriture sur les bois?', 'Contreventements en place?'] },
+      { name: 'Infiltrations', items: ['Aucune trace d\'infiltration d\'eau?', 'Aucune tache ni noircissement sur les bois?', 'Aucune moisissure visible?'] },
+      { name: 'Isolation', items: ['Isolation présente et uniforme?', 'Isolation suffisante au-dessus du garage?', 'Aucun isolant déplacé ou manquant?'] },
+      { name: 'Pare-vapeur', items: ['Pare-vapeur intact, sans ouvertures?', 'Aucune déchirure autour des fils ou tuyaux?'] },
+      { name: 'Ventilation', items: ['Ventilateur de toit présent?', 'Soffites non obstrués?', 'Bonne circulation d\'air visible?'] },
+      { name: 'Vermines', items: ['Aucun signe d\'excréments?', 'Aucun nid ou matériaux de nidification?', 'Aucune entrée visible pour rongeurs?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'mecanique', icon: '⚙️', name: 'Salle mécanique',
+    elements: [
+      { name: 'Chauffe-eau', items: ['Remplacé depuis 2008?', 'Quel modèle et année?', 'Soupape sécurité en bon état?'] },
+      { name: 'Thermopompe', items: ['Année d\'installation connue?', 'Entretien récent effectué?', 'Fonctionne en mode chauffage?'] },
+      { name: 'Fournaise air soufflé', items: ['Filtres propres?', 'Aucun bruit anormal?'] },
+      { name: 'Chauffage radiant', items: ['Contrôleur présent et fonctionnel?', 'Toutes les zones fonctionnelles?'] },
+      { name: 'Chauffage au bois', items: ['Fournaise/poêle à bois présent?', 'Conduit de fumée en bon état?', 'Certifié WETT?', 'Aucune fissure dans le foyer ou le conduit?', 'Chambre de combustion propre?', 'Réserve de bois accessible?'] },
+      { name: 'Pompe à eau', items: ['En bon état général?', 'Aucun bruit anormal?', 'Aucune fuite visible?', 'Pression adéquate?'] },
+      { name: 'Filtre à eau', items: ['Filtre en place?', 'Date du dernier remplacement connue?', 'Aucune fuite sur les raccords?'] },
+      { name: 'Tuyauterie PEX', items: ['Protégée contre chocs mécaniques?', 'Aucune fuite visible?'] },
+      { name: 'Électricité', items: ['Luminaires sécuritaires (aucune ampoule nue)?'] },
+      { name: 'Valve principale eau', items: ['Localisée?', 'Fonctionne bien?'] },
+      { name: 'Balayeuse centrale', items: ['Présente?', 'Fonctionne correctement?', 'Réservoir propre, sans fissure?', 'Tuyau et accessoires inclus?'] },
+    ],
+    electricFields: true,
+  },
+  {
+    id: 'exterieur', icon: '🌿', name: 'Extérieur',
+    elements: [
+      { name: 'Terrasse arrière', items: ['Poutre en bon état?', 'Pieux stables et droits?', 'Garde-corps installés et solides?', 'Planches sans pourriture?', 'Aucune déformation visible?'] },
+      { name: 'Galerie avant', items: ['Colonne remplacée depuis 2020?', 'Garde-corps présents et solides?', 'Planches en bon état?', 'Marches stables et antidérapantes?'] },
+      { name: 'Fondation', items: ['Aucune fissure visible?', 'Crépi en bon état?', 'Drainage s\'éloigne de la maison?', 'Aucune efflorescence?', 'Aucune végétation collée au mur?'] },
+      { name: 'Toiture', items: ['Bardeaux en bon état (18 ans)?', 'Solin évent plomberie réparé?', 'Aucune érosion autour fondation?', 'Gouttières absentes — impact observé?', 'Aucun bardeau manquant ou soulevé?'] },
+      { name: 'Revêtement vinyle', items: ['Espacement solin corrigé?', 'Calfeutrage fenêtres/portes intact?', 'Aucun panneau fissuré ou déformé?', 'Aucun panneau manquant?'] },
+      { name: 'Fenêtres extérieur', items: ['Calfeutrage intact tout le tour?', 'Aucune condensation entre vitres?', 'Seuils en bon état?'] },
+      { name: 'Cour en asphalte', items: ['Surface sans fissures importantes?', 'Aucun affaissement ni ornière?', 'Drainage adéquat, aucune accumulation d\'eau?', 'Bordures en bon état?'] },
+      { name: 'Piscine', items: ['Clôture conforme à la municipalité?', 'Équipement inclus en bon état?', 'Structure hors-terre sans déformation?', 'Pompe et filtre fonctionnels?'] },
+      { name: 'Gazébo', items: ['Structure stable?', 'Toiture en bon état?', 'Plancher sans pourriture?', 'Raccordements électriques sécuritaires?'] },
+      { name: 'Grange / remise', items: ['Structure stable?', 'Toit sans dommages majeurs?', 'Portes fonctionnelles?', 'Aucune infestation visible?'] },
+      { name: 'Terrain général', items: ['Aucune dénivellation problématique?', 'Arbres éloignés de la maison?', 'Aucun signe d\'inondation passée?', 'Étang bien délimité?'] },
+    ],
+    electricFields: true,
+  },
+];
+
+// State
+let state = {};
+let photos = {}; // roomId -> [{dataUrl, caption}]
+let currentPhotoRoom = null;
+
+ROOMS.forEach(room => {
+  room.elements.forEach(el => {
+    el.items.forEach((item, i) => {
+      const key = `${room.id}__${el.name}__${i}`;
+      state[key] = { status: null, note: '' };
+    });
+  });
+  photos[room.id] = [];
+});
+
+function getKey(roomId, elName, itemIdx) {
+  return `${roomId}__${elName}__${itemIdx}`;
+}
+
+function totalItems() { return Object.keys(state).length; }
+function answeredItems() { return Object.values(state).filter(s => s.status !== null).length; }
+
+function updateProgress() {
+  const total = totalItems();
+  const done = answeredItems();
+  document.getElementById('progressPill').textContent = `${done} / ${total}`;
+}
+
+function updateRoomCounts() {
+  ROOMS.forEach(room => {
+    const btn = document.getElementById(`roombtn-${room.id}`);
+    if (!btn) return;
+    let total = 0, done = 0;
+    room.elements.forEach(el => {
+      el.items.forEach((item, i) => {
+        total++;
+        const key = getKey(room.id, el.name, i);
+        if (state[key].status !== null) done++;
+      });
+    });
+    const countEl = btn.querySelector('.room-count');
+    if (countEl) countEl.textContent = `${done}/${total}`;
+  });
+}
+
+function setStatus(roomId, elName, itemIdx, status) {
+  const key = getKey(roomId, elName, itemIdx);
+  state[key].status = state[key].status === status ? null : status;
+  renderItem(roomId, elName, itemIdx);
+  updateProgress();
+  updateRoomCounts();
+}
+
+function setNote(roomId, elName, itemIdx, val) {
+  const key = getKey(roomId, elName, itemIdx);
+  state[key].note = val;
+}
+
+function toggleNote(roomId, elName, itemIdx) {
+  const key = `note-${roomId}-${elName}-${itemIdx}`.replace(/\s/g,'_');
+  const el = document.getElementById(key);
+  if (el) {
+    el.classList.toggle('visible');
+    if (el.classList.contains('visible')) el.focus();
+  }
+}
+
+function renderItem(roomId, elName, itemIdx) {
+  const key = getKey(roomId, elName, itemIdx);
+  const s = state[key];
+  const domKey = `item-${roomId}-${elName}-${itemIdx}`.replace(/\s/g,'_');
+  const el = document.getElementById(domKey);
+  if (!el) return;
+  const btns = el.querySelectorAll('.status-btn');
+  btns.forEach(btn => {
+    btn.classList.remove('selected');
+    if (btn.dataset.status === s.status) btn.classList.add('selected');
+  });
+}
+
+// MEDIA FUNCTIONS (photo + video)
+function openCamera(roomId) {
+  currentPhotoRoom = roomId;
+  document.getElementById('fileCamera').value = '';
+  document.getElementById('fileCamera').click();
+}
+
+function openGallery(roomId) {
+  currentPhotoRoom = roomId;
+  document.getElementById('fileGallery').value = '';
+  document.getElementById('fileGallery').click();
+}
+
+function handleMedia(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length || !currentPhotoRoom) return;
+  files.forEach(file => {
+    const isVideo = file.type.startsWith('video/');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      photos[currentPhotoRoom].push({
+        dataUrl: e.target.result,
+        caption: file.name,
+        type: isVideo ? 'video' : 'image'
+      });
+      renderPhotoGrid(currentPhotoRoom);
+      updatePhotoCount(currentPhotoRoom);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function handlePhoto(event, source) { handleMedia(event); }
+
+function deletePhoto(roomId, idx) {
+  photos[roomId].splice(idx, 1);
+  renderPhotoGrid(roomId);
+  updatePhotoCount(roomId);
+}
+
+function openLightbox(roomId, idx) {
+  const p = photos[roomId][idx];
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  const vid = document.getElementById('lightboxVid');
+  const caption = document.getElementById('lightboxCaption');
+  caption.textContent = `${p.type === 'video' ? '🎥' : '📷'} ${p.type === 'video' ? 'Vidéo' : 'Photo'} ${idx + 1} — ${ROOMS.find(r=>r.id===roomId).name}`;
+  if (p.type === 'video') {
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    vid.src = p.dataUrl;
+    vid.play();
+  } else {
+    vid.style.display = 'none';
+    vid.pause();
+    vid.src = '';
+    img.style.display = 'block';
+    img.src = p.dataUrl;
+  }
+  lb.classList.add('active');
+}
+
+function closeLightbox() {
+  const vid = document.getElementById('lightboxVid');
+  vid.pause();
+  vid.src = '';
+  document.getElementById('lightbox').classList.remove('active');
+}
+
+function renderPhotoGrid(roomId) {
+  const grid = document.getElementById(`photo-grid-${roomId}`);
+  if (!grid) return;
+  const roomPhotos = photos[roomId];
+  if (roomPhotos.length === 0) {
+    grid.innerHTML = `<div class="photo-empty">Aucun média — 📷 pour photo/vidéo, 🖼️ pour galerie</div>`;
+    return;
+  }
+  grid.innerHTML = roomPhotos.map((p, i) => `
+    <div class="photo-thumb" onclick="openLightbox('${roomId}',${i})">
+      ${p.type === 'video'
+        ? `<video src="${p.dataUrl}" style="width:100%;height:100%;object-fit:cover" muted playsinline></video>
+           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25)">
+             <span style="font-size:1.6rem">▶️</span>
+           </div>`
+        : `<img src="${p.dataUrl}" alt="Photo ${i+1}">`
+      }
+      <button class="photo-del" onclick="event.stopPropagation();deletePhoto('${roomId}',${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function updatePhotoCount(roomId) {
+  const badge = document.getElementById(`photo-count-${roomId}`);
+  if (badge) {
+    const n = photos[roomId].length;
+    const nPhoto = photos[roomId].filter(p => p.type === 'image').length;
+    const nVideo = photos[roomId].filter(p => p.type === 'video').length;
+    if (n === 0) { badge.style.display = 'none'; return; }
+    let label = [];
+    if (nPhoto > 0) label.push(`${nPhoto} 📷`);
+    if (nVideo > 0) label.push(`${nVideo} 🎥`);
+    badge.textContent = label.join(' · ');
+    badge.style.display = 'inline';
+  }
+}
+
+function buildUI() {
+  const nav = document.getElementById('roomNav');
+  const content = document.getElementById('mainContent');
+  nav.innerHTML = '';
+  content.innerHTML = '';
+
+  ROOMS.forEach((room, ri) => {
+    // Nav button
+    const btn = document.createElement('button');
+    btn.className = 'room-btn' + (ri === 0 ? ' active' : '');
+    btn.id = `roombtn-${room.id}`;
+    btn.innerHTML = `${room.icon} ${room.name} <span class="room-count">0/0</span>`;
+    btn.onclick = () => switchRoom(room.id);
+    nav.appendChild(btn);
+
+    // Section
+    const section = document.createElement('div');
+    section.className = 'room-section' + (ri === 0 ? ' active' : '');
+    section.id = `room-${room.id}`;
+
+    let html = `<div class="room-title">${room.icon} ${room.name}</div>`;
+
+    room.elements.forEach(el => {
+      html += `<div class="element-group">`;
+      html += `<div class="element-header">${el.name}</div>`;
+      el.items.forEach((item, i) => {
+        const domKey = `item-${room.id}-${el.name}-${i}`.replace(/\s/g,'_');
+        const noteKey = `note-${room.id}-${el.name}-${i}`.replace(/\s/g,'_');
+        html += `
+          <div class="check-item" id="${domKey}">
+            <div class="check-label">${item}</div>
+            <div class="status-row">
+              <button class="status-btn oui" data-status="oui" onclick="setStatus('${room.id}','${el.name}',${i},'oui')">✅ Oui</button>
+              <button class="status-btn non" data-status="non" onclick="setStatus('${room.id}','${el.name}',${i},'non')">❌ Non</button>
+              <button class="status-btn averifier" data-status="averifier" onclick="setStatus('${room.id}','${el.name}',${i},'averifier')">🔄 À vérifier</button>
+            </div>
+            <button class="note-toggle" onclick="toggleNote('${room.id}','${el.name}',${i})">+ Ajouter une note</button>
+            <textarea class="note-input" id="${noteKey}" rows="2" placeholder="Note..." oninput="setNote('${room.id}','${el.name}',${i},this.value)"></textarea>
+          </div>`;
+      });
+      html += `</div>`;
+    });
+
+    // ELECTRIC FIELDS for rooms that need them
+    if (room.electricFields) {
+      const eid = room.id.replace(/-/g,'_');
+      html += `
+        <div class="element-group">
+          <div class="element-header">Électricité — relevé</div>
+          <div class="check-item">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">🔌 Nb. de prises 120V</div>
+                <input type="text" inputmode="numeric" placeholder="ex: 4" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="prises-${eid}">
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">💡 Type d'éclairage</div>
+                <select style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;background:var(--bg);color:var(--text);appearance:auto" id="eclairage-${eid}">
+                  <option value="">— Choisir —</option>
+                  <option value="DEL encastré">DEL encastré</option>
+                  <option value="DEL plafonnier">DEL plafonnier</option>
+                  <option value="DEL suspendu">DEL suspendu</option>
+                  <option value="DEL sur rail">DEL sur rail</option>
+                  <option value="Fluorescent">Fluorescent</option>
+                  <option value="Fluorescent encastré">Fluorescent encastré</option>
+                  <option value="Plafonnier standard">Plafonnier standard</option>
+                  <option value="Lustre / suspension">Lustre / suspension</option>
+                  <option value="Applique murale">Applique murale</option>
+                  <option value="Ampoule nue">Ampoule nue</option>
+                  <option value="Aucun éclairage">Aucun éclairage</option>
+                  <option value="Mixte">Mixte</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">🌐 Prise réseau (RJ45)?</div>
+                <select style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;background:var(--bg);color:var(--text);appearance:auto" id="reseau-${eid}">
+                  <option value="">— —</option>
+                  <option value="Oui">✅ Oui</option>
+                  <option value="Non">❌ Non</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">📞 Prise téléphonique?</div>
+                <select style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;background:var(--bg);color:var(--text);appearance:auto" id="telephone-${eid}">
+                  <option value="">— —</option>
+                  <option value="Oui">✅ Oui</option>
+                  <option value="Non">❌ Non</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+    if (room.id === 'cuisine') {
+      html += `
+        <div class="element-group">
+          <div class="element-header">Mesures espaces électroménagers</div>
+          <div class="check-item">
+            <div class="check-label" style="font-weight:700;margin-bottom:10px">🧊 Espace frigo</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Hauteur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="frigo-h">
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Largeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="frigo-l">
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Profondeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="frigo-p">
+              </div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-label" style="font-weight:700;margin-bottom:10px">🍳 Espace cuisinière</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Hauteur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="cuisiniere-h">
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Largeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="cuisiniere-l">
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Profondeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="cuisiniere-p">
+              </div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-label" style="font-weight:700;margin-bottom:10px">🍽️ Espace lave-vaisselle</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Hauteur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="lv-h">
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Largeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="lv-l">
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Profondeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="lv-p">
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // MEASUREMENT SECTION for SDB sous-sol (laveuse/sécheuse)
+    if (room.id === 'sdb-ss') {
+      html += `
+        <div class="element-group">
+          <div class="element-header">Mesures espace laveuse / sécheuse</div>
+          <div class="check-item">
+            <div class="check-label" style="font-weight:700;margin-bottom:10px">🫧 Espace laveuse</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div><div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Hauteur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="laveuse-h"></div>
+              <div><div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Largeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="laveuse-l"></div>
+              <div><div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Profondeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="laveuse-p"></div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-label" style="font-weight:700;margin-bottom:10px">🌀 Espace sécheuse</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div><div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Hauteur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="secheuse-h"></div>
+              <div><div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Largeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="secheuse-l"></div>
+              <div><div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:4px">Profondeur</div>
+                <input type="text" inputmode="decimal" placeholder='0"' style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text)" id="secheuse-p"></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // PHOTO SECTION per room
+    html += `
+      <div class="photo-section">
+        <div class="photo-section-header">
+          <span>📷 Photos — ${room.name}</span>
+          <span class="photo-count-badge" id="photo-count-${room.id}" style="display:none"></span>
+        </div>
+        <div class="photo-body">
+          <div class="photo-btn-row">
+            <button class="photo-btn" onclick="openGallery('${room.id}')">
+              <span class="photo-btn-icon">🖼️</span>
+              <span>Ajouter photos / vidéos</span>
+            </button>
+          </div>
+          <div class="photo-grid" id="photo-grid-${room.id}">
+            <div class="photo-empty">Aucune photo — appuie sur 📷 ou 🖼️ pour en ajouter</div>
+          </div>
+        </div>
+      </div>`;
+
+    section.innerHTML = html;
+    content.appendChild(section);
+  });
+
+  updateRoomCounts();
+  updateProgress();
+}
+
+function switchRoom(roomId) {
+  document.querySelectorAll('.room-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+  const s = document.getElementById(`room-${roomId}`);
+  const b = document.getElementById(`roombtn-${roomId}`);
+  if (s) s.classList.add('active');
+  if (b) {
+    b.classList.add('active');
+    b.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('summaryView').classList.remove('active');
+}
+
+function showInspection() {
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('summaryView').classList.remove('active');
+}
+
+function showSummary() {
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('summaryView').classList.add('active');
+  buildSummary();
+}
+
+function buildSummary() {
+  let oui = 0, non = 0, av = 0, total = 0;
+  Object.values(state).forEach(s => {
+    total++;
+    if (s.status === 'oui') oui++;
+    else if (s.status === 'non') non++;
+    else if (s.status === 'averifier') av++;
+  });
+  const unanswered = total - oui - non - av;
+  document.getElementById('statOui').textContent = oui;
+  document.getElementById('statNon').textContent = non;
+  document.getElementById('statAv').textContent = av;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statUnanswered').textContent = unanswered;
+
+  const container = document.getElementById('summaryContent');
+  let totalPhotos = 0;
+  ROOMS.forEach(r => { totalPhotos += photos[r.id].length; });
+
+  let html = '';
+
+  // ── SECTION 0 : Électricité relevés (en haut) ──
+  const electricRooms = ROOMS.filter(r => r.electricFields);
+  const electricData = electricRooms.map(r => {
+    const eid = r.id.replace(/-/g,'_');
+    return {
+      room: r.name, icon: r.icon,
+      prises: document.getElementById(`prises-${eid}`)?.value || '',
+      eclairage: document.getElementById(`eclairage-${eid}`)?.value || '',
+      reseau: document.getElementById(`reseau-${eid}`)?.value || '',
+      telephone: document.getElementById(`telephone-${eid}`)?.value || '',
+    };
+  }).filter(d => d.prises || d.eclairage || d.reseau || d.telephone);
+  if (electricData.length > 0) {
+    // Totaux
+    let totalPrises = 0;
+    electricData.forEach(d => { if (d.prises) totalPrises += parseInt(d.prises) || 0; });
+
+    html += `<div class="summary-title" style="margin-bottom:12px">🔌 Électricité par pièce</div>`;
+
+    // Totaux globaux
+    html += `<div class="summary-section" style="margin-bottom:10px">
+      <div class="summary-section-header"><span>Totaux</span></div>
+      <div class="summary-item">
+        <div class="summary-item-label">🔌 Total prises 120V</div>
+        <div style="font-weight:700;color:var(--accent)">${totalPrises > 0 ? totalPrises + ' prises' : '—'}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-item-label">🌐 Pièces avec réseau (RJ45)</div>
+        <div style="font-weight:700;color:var(--accent)">${electricData.filter(d=>d.reseau==='Oui').length} / ${electricData.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-item-label">📞 Pièces avec téléphone</div>
+        <div style="font-weight:700;color:var(--accent)">${electricData.filter(d=>d.telephone==='Oui').length} / ${electricData.length}</div>
+      </div>
+    </div>`;
+
+    // Détail par pièce
+    html += `<div class="summary-section">
+      <div class="summary-section-header"><span>Détail par pièce</span></div>`;
+    electricData.forEach(d => {
+      html += `<div class="summary-item" style="flex-direction:column;gap:4px">
+        <div style="font-weight:700;font-size:0.85rem">${d.icon} ${d.room}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${d.prises ? `<span style="background:#f0eeea;border-radius:4px;padding:2px 7px;font-size:0.72rem">🔌 ${d.prises} prises</span>` : ''}
+          ${d.eclairage ? `<span style="background:#f0eeea;border-radius:4px;padding:2px 7px;font-size:0.72rem">💡 ${d.eclairage}</span>` : ''}
+          ${d.reseau ? `<span style="background:${d.reseau==='Oui'?'#e6f4ec':'#fdecea'};border-radius:4px;padding:2px 7px;font-size:0.72rem">🌐 Réseau: ${d.reseau}</span>` : ''}
+          ${d.telephone ? `<span style="background:${d.telephone==='Oui'?'#e6f4ec':'#fdecea'};border-radius:4px;padding:2px 7px;font-size:0.72rem">📞 Tél: ${d.telephone}</span>` : ''}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── SECTION 1 : Problèmes (Non) ──
+  const nonItems = [];
+  ROOMS.forEach(room => {
+    room.elements.forEach(el => {
+      el.items.forEach((item, i) => {
+        const key = getKey(room.id, el.name, i);
+        const s = state[key];
+        if (s.status === 'non') nonItems.push({ room: room.name, icon: room.icon, el: el.name, item, note: s.note });
+      });
+    });
+  });
+  if (nonItems.length > 0) {
+    html += `<div class="summary-section">
+      <div class="summary-section-header" style="background:#fdecea">
+        <span>❌ Problèmes détectés</span>
+        <span style="font-size:0.75rem;color:var(--non);font-weight:700">${nonItems.length} item(s)</span>
+      </div>`;
+    nonItems.forEach(p => {
+      html += `<div class="summary-item">
+        <div class="summary-item-label">
+          <div style="font-size:0.72rem;color:var(--text-soft);margin-bottom:2px">${p.icon} ${p.room} — ${p.el}</div>
+          ${p.item}
+          ${p.note ? `<div class="summary-item-note">📝 ${p.note}</div>` : ''}
+        </div>
+        <span class="badge non">❌ Non</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── SECTION 2 : À vérifier ──
+  const avItems = [];
+  ROOMS.forEach(room => {
+    room.elements.forEach(el => {
+      el.items.forEach((item, i) => {
+        const key = getKey(room.id, el.name, i);
+        const s = state[key];
+        if (s.status === 'averifier') avItems.push({ room: room.name, icon: room.icon, el: el.name, item, note: s.note });
+      });
+    });
+  });
+  if (avItems.length > 0) {
+    html += `<div class="summary-section">
+      <div class="summary-section-header" style="background:#fef9e7">
+        <span>🔄 À vérifier</span>
+        <span style="font-size:0.75rem;color:var(--averifier);font-weight:700">${avItems.length} item(s)</span>
+      </div>`;
+    avItems.forEach(p => {
+      html += `<div class="summary-item">
+        <div class="summary-item-label">
+          <div style="font-size:0.72rem;color:var(--text-soft);margin-bottom:2px">${p.icon} ${p.room} — ${p.el}</div>
+          ${p.item}
+          ${p.note ? `<div class="summary-item-note">📝 ${p.note}</div>` : ''}
+        </div>
+        <span class="badge averifier">🔄 À vérifier</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── SECTION 3 : Résultats complets par pièce ──
+  html += `<div class="summary-title" style="margin-top:20px;margin-bottom:12px">📋 Résultats complets par pièce</div>`;
+  ROOMS.forEach(room => {
+    let roomOui = 0, roomNon = 0, roomAv = 0, roomTotal = 0;
+    room.elements.forEach(el => {
+      el.items.forEach((item, i) => {
+        roomTotal++;
+        const s = state[getKey(room.id, el.name, i)];
+        if (s.status === 'oui') roomOui++;
+        else if (s.status === 'non') roomNon++;
+        else if (s.status === 'averifier') roomAv++;
+      });
+    });
+    const roomAnswered = roomOui + roomNon + roomAv;
+    const headerBg = roomNon > 0 ? '#fdecea' : roomAv > 0 ? '#fef9e7' : roomAnswered === roomTotal ? '#e6f4ec' : '#faf9f7';
+
+    html += `<div class="summary-section">
+      <div class="summary-section-header" style="background:${headerBg}">
+        <span>${room.icon} ${room.name}</span>
+        <span style="font-size:0.72rem;color:var(--text-soft)">${roomAnswered}/${roomTotal} · `;
+    if (roomNon > 0) html += `<span style="color:var(--non)">❌${roomNon}</span> `;
+    if (roomAv > 0) html += `<span style="color:var(--averifier)">🔄${roomAv}</span> `;
+    if (roomOui > 0) html += `<span style="color:var(--oui)">✅${roomOui}</span>`;
+    html += `</span></div>`;
+
+    room.elements.forEach(el => {
+      el.items.forEach((item, i) => {
+        const key = getKey(room.id, el.name, i);
+        const s = state[key];
+        if (s.status === null) return;
+        html += `<div class="summary-item">
+          <div class="summary-item-label">
+            <div style="font-size:0.7rem;color:var(--text-soft);margin-bottom:1px">${el.name}</div>
+            ${item}
+            ${s.note ? `<div class="summary-item-note">📝 ${s.note}</div>` : ''}
+          </div>
+          <span class="badge ${s.status}">${s.status === 'oui' ? '✅ Oui' : s.status === 'non' ? '❌ Non' : '🔄 À vérifier'}</span>
+        </div>`;
+      });
+    });
+    html += `</div>`;
+  });
+
+  // ── SECTION 4 : Non répondus ──
+  if (unanswered > 0) {
+    html += `<div class="summary-section">
+      <div class="summary-section-header">
+        <span>⬜ Non évalués</span>
+        <span style="font-size:0.75rem;color:var(--text-soft)">${unanswered} item(s)</span>
+      </div>`;
+    ROOMS.forEach(room => {
+      room.elements.forEach(el => {
+        el.items.forEach((item, i) => {
+          const key = getKey(room.id, el.name, i);
+          if (state[key].status !== null) return;
+          html += `<div class="summary-item">
+            <div class="summary-item-label">
+              <div style="font-size:0.72rem;color:var(--text-soft);margin-bottom:2px">${room.icon} ${room.name} — ${el.name}</div>
+              ${item}
+            </div>
+            <span class="badge" style="background:#f0eeea;color:var(--text-soft)">— —</span>
+          </div>`;
+        });
+      });
+    });
+    html += `</div>`;
+  }
+
+  if (nonItems.length === 0 && avItems.length === 0 && oui === 0) {
+    html = `<div class="empty-summary">Aucun item évalué pour l'instant.<br>Commence l'inspection!</div>`;
+  }
+
+  container.innerHTML = html;
+
+  // ── SECTION 5 : Mesures ──
+  const measIds = [
+    { label: '🧊 Frigo', h: 'frigo-h', l: 'frigo-l', p: 'frigo-p' },
+    { label: '🍳 Cuisinière', h: 'cuisiniere-h', l: 'cuisiniere-l', p: 'cuisiniere-p' },
+    { label: '🍽️ Lave-vaisselle', h: 'lv-h', l: 'lv-l', p: 'lv-p' },
+    { label: '🫧 Laveuse', h: 'laveuse-h', l: 'laveuse-l', p: 'laveuse-p' },
+    { label: '🌀 Sécheuse', h: 'secheuse-h', l: 'secheuse-l', p: 'secheuse-p' },
+  ];
+  const measWithData = measIds.filter(m => {
+    const h = document.getElementById(m.h)?.value;
+    const l = document.getElementById(m.l)?.value;
+    const p = document.getElementById(m.p)?.value;
+    return h || l || p;
+  });
+  if (measWithData.length > 0) {
+    let measHtml = `<div class="summary-title" style="margin-top:20px;margin-bottom:12px">📐 Mesures prises</div>
+      <div class="summary-section">
+        <div class="summary-section-header"><span>Électroménagers / appareils</span></div>`;
+    measWithData.forEach(m => {
+      const h = document.getElementById(m.h)?.value || '—';
+      const l = document.getElementById(m.l)?.value || '—';
+      const p = document.getElementById(m.p)?.value || '—';
+      measHtml += `<div class="summary-item">
+        <div class="summary-item-label"><strong>${m.label}</strong></div>
+        <div style="font-size:0.78rem;color:var(--text-soft);text-align:right">H: ${h} · L: ${l} · P: ${p}</div>
+      </div>`;
+    });
+    measHtml += `</div>`;
+    container.innerHTML += measHtml;
+  }
+
+  // ── SECTION 6 : Photos ──
+  const photoContainer = document.getElementById('summaryPhotos');
+  let photoHtml = '';
+  ROOMS.forEach(room => {
+    if (photos[room.id].length === 0) return;
+    photoHtml += `<div class="summary-section">
+      <div class="summary-section-header"><span>${room.icon} ${room.name}</span><span style="font-size:0.75rem;color:var(--text-soft)">${photos[room.id].length} média(s)</span></div>
+      <div style="padding:10px 14px">
+        <div class="photo-grid">
+          ${photos[room.id].map((p,i) => `
+            <div class="photo-thumb" onclick="openLightbox('${room.id}',${i})">
+              ${p.type === 'video'
+                ? `<video src="${p.dataUrl}" style="width:100%;height:100%;object-fit:cover" muted playsinline></video>
+                   <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25)"><span style="font-size:1.4rem">▶️</span></div>`
+                : `<img src="${p.dataUrl}" alt="Photo ${i+1}">`}
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  });
+  if (photoContainer) photoContainer.innerHTML = totalPhotos > 0
+    ? `<div class="summary-title" style="margin-top:20px">📷 Médias (${totalPhotos})</div>` + photoHtml
+    : '';
+}
+
+function resetAll() {
+  showConfirm('Réinitialiser toute l\'inspection?', 'Toutes les réponses, notes et photos seront effacées.', () => {
+    Object.keys(state).forEach(k => { state[k] = { status: null, note: '' }; });
+    ROOMS.forEach(r => { photos[r.id] = []; });
+    try {
+      localStorage.removeItem('inspection_state');
+      localStorage.removeItem('inspection_photos');
+      localStorage.removeItem('inspection_electric');
+      localStorage.removeItem('inspection_meas');
+    } catch(e) {}
+    buildUI();
+    showInspection();
+    switchRoom(ROOMS[0].id);
+    showToast('✅ Inspection réinitialisée');
+  });
+}
+
+function showConfirm(title, message, onConfirm) {
+  // Remove existing modal if any
+  const existing = document.getElementById('confirm-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'confirm-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:24px;max-width:300px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.25)">
+      <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-bottom:8px">${title}</div>
+      <div style="font-size:0.85rem;color:#6b6660;margin-bottom:20px;line-height:1.4">${message}</div>
+      <div style="display:flex;gap:10px">
+        <button id="confirm-cancel" style="flex:1;border:1.5px solid #e0ddd8;background:#f5f4f0;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:600;cursor:pointer;color:#6b6660">Annuler</button>
+        <button id="confirm-ok" style="flex:1;border:none;background:#c0392b;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;color:white">Réinitialiser</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('confirm-cancel').onclick = () => modal.remove();
+  document.getElementById('confirm-ok').onclick = () => { modal.remove(); onConfirm(); };
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
+
+// ── SAVE / LOAD ──
+function saveData() {
+  try {
+    // Save state + notes
+    localStorage.setItem('inspection_state', JSON.stringify(state));
+    // Save photos (may be large — catch quota errors)
+    localStorage.setItem('inspection_photos', JSON.stringify(photos));
+    // Save electric fields
+    const electric = {};
+    ROOMS.forEach(r => {
+      const eid = r.id.replace(/-/g,'_');
+      const p = document.getElementById(`prises-${eid}`);
+      const e = document.getElementById(`eclairage-${eid}`);
+      const rj = document.getElementById(`reseau-${eid}`);
+      const tel = document.getElementById(`telephone-${eid}`);
+      if (p || e || rj || tel) {
+        electric[eid] = {
+          prises: p?.value || '',
+          eclairage: e?.value || '',
+          reseau: rj?.value || '',
+          telephone: tel?.value || '',
+        };
+      }
+    });
+    localStorage.setItem('inspection_electric', JSON.stringify(electric));
+    // Save measurements
+    const measKeys = ['frigo-h','frigo-l','frigo-p','cuisiniere-h','cuisiniere-l','cuisiniere-p','lv-h','lv-l','lv-p','laveuse-h','laveuse-l','laveuse-p','secheuse-h','secheuse-l','secheuse-p'];
+    const meas = {};
+    measKeys.forEach(k => { meas[k] = document.getElementById(k)?.value || ''; });
+    localStorage.setItem('inspection_meas', JSON.stringify(meas));
+    showToast('✅ Sauvegardé!');
+  } catch(e) {
+    showToast('⚠️ Sauvegarde partielle (photos exclues — trop volumineux)');
+    // Try without photos
+    try {
+      localStorage.setItem('inspection_state', JSON.stringify(state));
+    } catch(e2) {}
+  }
+}
+
+function loadData() {
+  try {
+    const savedState = localStorage.getItem('inspection_state');
+    if (savedState) {
+      const parsed = JSON.parse(savedState);
+      Object.keys(parsed).forEach(k => { if (state[k] !== undefined) state[k] = parsed[k]; });
+    }
+    const savedPhotos = localStorage.getItem('inspection_photos');
+    if (savedPhotos) {
+      const parsed = JSON.parse(savedPhotos);
+      Object.keys(parsed).forEach(k => { if (photos[k] !== undefined) photos[k] = parsed[k]; });
+    }
+  } catch(e) {}
+}
+
+function restoreFields() {
+  try {
+    const electric = JSON.parse(localStorage.getItem('inspection_electric') || '{}');
+    Object.keys(electric).forEach(eid => {
+      const d = electric[eid];
+      const p = document.getElementById(`prises-${eid}`);
+      const e = document.getElementById(`eclairage-${eid}`);
+      const rj = document.getElementById(`reseau-${eid}`);
+      const tel = document.getElementById(`telephone-${eid}`);
+      if (p) p.value = d.prises || '';
+      if (e) e.value = d.eclairage || '';
+      if (rj) rj.value = d.reseau || '';
+      if (tel) tel.value = d.telephone || '';
+    });
+    const meas = JSON.parse(localStorage.getItem('inspection_meas') || '{}');
+    Object.keys(meas).forEach(k => {
+      const el = document.getElementById(k);
+      if (el) el.value = meas[k] || '';
+    });
+    // Re-render all item statuses
+    ROOMS.forEach(room => {
+      room.elements.forEach(el => {
+        el.items.forEach((item, i) => { renderItem(room.id, el.name, i); });
+      });
+    });
+    updateProgress();
+    updateRoomCounts();
+  } catch(e) {}
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:0.82rem;z-index:300;opacity:0;transition:opacity 0.3s;white-space:nowrap;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+}
+
+function printSummary() {
+  buildSummary();
+
+  const date = new Date().toLocaleDateString('fr-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const oui = document.getElementById('statOui').textContent;
+  const non = document.getElementById('statNon').textContent;
+  const av = document.getElementById('statAv').textContent;
+  const total = document.getElementById('statTotal').textContent;
+
+  const summaryEl = document.getElementById('summaryView');
+  const cleanHTML = summaryEl ? summaryEl.innerHTML
+    .replace(/<button[^>]*>[\s\S]*?<\/button>/g, '')
+    .replace(/onclick="[^"]*"/g, '') : '';
+
+  const printHTML = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspection de maison — Résumé</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family: -apple-system, Arial, sans-serif; font-size:13px; color:#1a1a1a; padding:20px; max-width:700px; margin:0 auto; }
+h1 { font-size:20px; font-weight:700; margin-bottom:4px; }
+.sub { font-size:11px; color:#666; margin-bottom:3px; }
+.date { font-size:11px; color:#888; margin-bottom:18px; }
+.stats { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+.stat { flex:1; min-width:60px; border:1px solid #ddd; border-radius:8px; padding:8px; text-align:center; }
+.stat-n { font-size:20px; font-weight:800; }
+.stat-l { font-size:10px; color:#666; }
+.oui .stat-n { color:#2d7a4f; }
+.non .stat-n { color:#c0392b; }
+.av .stat-n { color:#d68910; }
+.summary-section { border:1px solid #ddd; border-radius:8px; margin-bottom:10px; overflow:hidden; page-break-inside:avoid; }
+.summary-section-header { background:#f5f4f0; padding:8px 12px; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; display:flex; justify-content:space-between; border-bottom:1px solid #ddd; }
+.summary-item { padding:7px 12px; border-bottom:1px solid #f0eeea; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; font-size:12px; }
+.summary-item:last-child { border-bottom:none; }
+.summary-item-label { flex:1; line-height:1.4; }
+.summary-item-note { font-size:10px; color:#888; margin-top:2px; }
+.summary-title { font-size:14px; font-weight:700; margin:18px 0 8px; color:#2d5a3d; }
+.badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; white-space:nowrap; flex-shrink:0; }
+.badge.oui { background:#e6f4ec; color:#2d7a4f; }
+.badge.non { background:#fdecea; color:#c0392b; }
+.badge.averifier { background:#fef9e7; color:#d68910; }
+.empty-summary { text-align:center; color:#888; padding:20px; }
+.summary-stat-row, .stat-card, button, select, input, textarea { display:none !important; }
+img { max-width:100%; border-radius:4px; display:block; }
+video { display:none; }
+.photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:10px 12px; }
+.photo-thumb { aspect-ratio:1; border-radius:6px; overflow:hidden; background:#eee; }
+.photo-thumb img { width:100%; height:100%; object-fit:cover; }
+.print-btn { position:fixed; bottom:20px; right:20px; background:#2d5a3d; color:white; border:none; border-radius:12px; padding:14px 20px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.25); z-index:100; }
+@media print { .print-btn { display:none !important; } }
+</style>
+</head>
+<body>
+<h1>🏠 Inspection de maison</h1>
+<div class="sub">2155 Ch. de l'Aéroport, Thetford Mines</div>
+<div class="date">${date}</div>
+<div class="stats">
+  <div class="stat oui"><div class="stat-n">${oui}</div><div class="stat-l">✅ Oui</div></div>
+  <div class="stat non"><div class="stat-n">${non}</div><div class="stat-l">❌ Non</div></div>
+  <div class="stat av"><div class="stat-n">${av}</div><div class="stat-l">🔄 À vérifier</div></div>
+  <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Total</div></div>
+</div>
+${cleanHTML}
+<button class="print-btn" onclick="window.print()">🖨️ Imprimer / PDF</button>
+</body>
+</html>`;
+
+  // Show in a fullscreen overlay instead of new tab (works on all iOS browsers)
+  let overlay = document.getElementById('print-overlay');
+  if (overlay) overlay.remove();
+
+  overlay = document.createElement('div');
+  overlay.id = 'print-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:400;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch';
+  // Build overlay using DOM methods entirely - no innerHTML with dynamic content
+  // Header bar
+  const headerBar = document.createElement('div');
+  headerBar.style.cssText = 'position:sticky;top:0;background:#2d5a3d;color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:10;width:100%';
+
+  const headerTitle = document.createElement('span');
+  headerTitle.style.cssText = 'font-weight:700;font-size:0.95rem';
+  headerTitle.textContent = '📄 Résumé';
+
+  const headerBtns = document.createElement('div');
+  headerBtns.style.cssText = 'display:flex;gap:8px';
+
+  const shareBtn = document.createElement('button');
+  shareBtn.style.cssText = 'background:white;color:#2d5a3d;border:none;border-radius:8px;padding:7px 14px;font-size:0.82rem;font-weight:700;cursor:pointer';
+  shareBtn.textContent = '📤 Partager';
+  shareBtn.onclick = shareResume;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.style.cssText = 'background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:0.82rem;font-weight:700;cursor:pointer';
+  closeBtn.textContent = '✕ Fermer';
+  closeBtn.onclick = function() { document.getElementById('print-overlay').remove(); };
+
+  headerBtns.appendChild(shareBtn);
+  headerBtns.appendChild(closeBtn);
+  headerBar.appendChild(headerTitle);
+  headerBar.appendChild(headerBtns);
+
+  // Content area
+  const contentArea = document.createElement('div');
+  contentArea.style.cssText = 'padding:20px;max-width:700px;margin:0 auto;font-family:-apple-system,Arial,sans-serif';
+
+  const h1 = document.createElement('h1');
+  h1.style.cssText = 'font-size:20px;font-weight:700;margin-bottom:4px';
+  h1.textContent = '🏠 Inspection de maison';
+
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:11px;color:#666;margin-bottom:3px';
+  sub.textContent = '2155 Ch. de l\'Aéroport, Thetford Mines';
+
+  const dateDiv = document.createElement('div');
+  dateDiv.style.cssText = 'font-size:11px;color:#888;margin-bottom:18px';
+  dateDiv.textContent = date;
+
+  const statsRow = document.createElement('div');
+  statsRow.style.cssText = 'display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap';
+  [
+    [oui, '✅ Oui', '#2d7a4f'],
+    [non, '❌ Non', '#c0392b'],
+    [av, '🔄 À vérifier', '#d68910'],
+    [total, 'Total', '#1a1a1a']
+  ].forEach(function(s) {
+    const card = document.createElement('div');
+    card.style.cssText = 'flex:1;min-width:60px;border:1px solid #ddd;border-radius:8px;padding:8px;text-align:center';
+    const num = document.createElement('div');
+    num.style.cssText = 'font-size:20px;font-weight:800;color:' + s[2];
+    num.textContent = s[0];
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:10px;color:#666';
+    lbl.textContent = s[1];
+    card.appendChild(num);
+    card.appendChild(lbl);
+    statsRow.appendChild(card);
+  });
+
+  // Inject summary content safely
+  const summaryContent = document.createElement('div');
+  summaryContent.innerHTML = cleanHTML;
+  summaryContent.querySelectorAll('button, input, select, textarea').forEach(function(el) { el.remove(); });
+
+  contentArea.appendChild(h1);
+  contentArea.appendChild(sub);
+  contentArea.appendChild(dateDiv);
+  contentArea.appendChild(statsRow);
+  contentArea.appendChild(summaryContent);
+
+  overlay.appendChild(headerBar);
+  overlay.appendChild(contentArea);
+
+  document.body.appendChild(overlay);
+  showToast('📄 Résumé — appuie 📤 Partager pour envoyer');
+}
+
+function shareResume() {
+  // Build plain text version of the summary for sharing
+  const date = new Date().toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
+  const oui = document.getElementById('statOui').textContent;
+  const non = document.getElementById('statNon').textContent;
+  const av = document.getElementById('statAv').textContent;
+  const total = document.getElementById('statTotal').textContent;
+
+  let text = '🏠 INSPECTION DE MAISON\n';
+  text += '2155 Ch. de l\'Aéroport, Thetford Mines\n';
+  text += 'Date : ' + date + '\n\n';
+  text += '─────────────────────────\n';
+  text += '✅ Oui : ' + oui + '   ❌ Non : ' + non + '   🔄 À vérifier : ' + av + '   Total : ' + total + '\n';
+  text += '─────────────────────────\n\n';
+
+  // Collect non items
+  const nonItems = [];
+  const avItems = [];
+  ROOMS.forEach(room => {
+    room.elements.forEach(el => {
+      el.items.forEach((item, i) => {
+        const key = room.id + '__' + el.name + '__' + i;
+        const s = state[key];
+        if (!s) return;
+        if (s.status === 'non') nonItems.push({ room: room.name, el: el.name, item, note: s.note });
+        if (s.status === 'averifier') avItems.push({ room: room.name, el: el.name, item, note: s.note });
+      });
+    });
+  });
+
+  if (nonItems.length > 0) {
+    text += '❌ PROBLÈMES DÉTECTÉS (' + nonItems.length + ')\n';
+    nonItems.forEach(p => {
+      text += '• [' + p.room + ' — ' + p.el + '] ' + p.item + '\n';
+      if (p.note) text += '  📝 ' + p.note + '\n';
+    });
+    text += '\n';
+  }
+
+  if (avItems.length > 0) {
+    text += '🔄 À VÉRIFIER (' + avItems.length + ')\n';
+    avItems.forEach(p => {
+      text += '• [' + p.room + ' — ' + p.el + '] ' + p.item + '\n';
+      if (p.note) text += '  📝 ' + p.note + '\n';
+    });
+    text += '\n';
+  }
+
+  // Résultats par pièce
+  text += '─────────────────────────\n';
+  text += 'RÉSULTATS PAR PIÈCE\n';
+  text += '─────────────────────────\n';
+  ROOMS.forEach(room => {
+    let roomLines = [];
+    room.elements.forEach(el => {
+      el.items.forEach((item, i) => {
+        const key = room.id + '__' + el.name + '__' + i;
+        const s = state[key];
+        if (!s || s.status === null) return;
+        const icon = s.status === 'oui' ? '✅' : s.status === 'non' ? '❌' : '🔄';
+        roomLines.push('  ' + icon + ' [' + el.name + '] ' + item + (s.note ? ' — ' + s.note : ''));
+      });
+    });
+    if (roomLines.length > 0) {
+      text += '\n' + room.icon + ' ' + room.name.toUpperCase() + '\n';
+      text += roomLines.join('\n') + '\n';
+    }
+  });
+
+  // Electric summary
+  const electricRooms = ROOMS.filter(r => r.electricFields);
+  const electricLines = [];
+  electricRooms.forEach(r => {
+    const eid = r.id.replace(/-/g,'_');
+    const prises = document.getElementById('prises-' + eid)?.value;
+    const eclairage = document.getElementById('eclairage-' + eid)?.value;
+    const reseau = document.getElementById('reseau-' + eid)?.value;
+    const tel = document.getElementById('telephone-' + eid)?.value;
+    if (prises || eclairage || reseau || tel) {
+      let line = '  ' + r.icon + ' ' + r.name + ':';
+      if (prises) line += ' 🔌' + prises + ' prises';
+      if (eclairage) line += ' 💡' + eclairage;
+      if (reseau) line += ' 🌐Réseau:' + reseau;
+      if (tel) line += ' 📞Tél:' + tel;
+      electricLines.push(line);
+    }
+  });
+  if (electricLines.length > 0) {
+    text += '\n─────────────────────────\n';
+    text += '🔌 ÉLECTRICITÉ PAR PIÈCE\n';
+    text += electricLines.join('\n') + '\n';
+  }
+
+  // Share via Web Share API (iOS native share sheet)
+  if (navigator.share) {
+    navigator.share({
+      title: 'Inspection de maison — ' + date,
+      text: text,
+    }).then(() => {
+      showToast('✅ Partagé!');
+    }).catch(err => {
+      if (err.name !== 'AbortError') {
+        // Fallback: copy to clipboard
+        copyToClipboard(text);
+      }
+    });
+  } else {
+    // Fallback for browsers without Web Share API
+    copyToClipboard(text);
+  }
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('📋 Copié! Colle dans Notes ou email');
+    }).catch(() => {
+      showToast('⚠️ Impossible de copier automatiquement');
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 Copié! Colle dans Notes ou email');
+  }
+}
+
+// Restore fields after DOM is ready
+buildUI();
+loadData();
+setTimeout(restoreFields, 50);
+</script>
+</body>
+</html>
